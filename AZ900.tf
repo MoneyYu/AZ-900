@@ -20,15 +20,17 @@ locals {
   lab07_name              = "LAB07FUNCTION"
   lab08_name              = "LAB08WEBAPP"
   lab13_name              = "LAB13KEYVALUT"
-  lab01_name_with_postfix = "${local.lab01_name}-${random_string.rid.result}"
-  lab02_name_with_postfix = "${local.lab02_name}-${random_string.rid.result}"
-  lab03_name_with_postfix = "${local.lab03_name}-${random_string.rid.result}"
-  lab04_name_with_postfix = "${local.lab04_name}-${random_string.rid.result}"
-  lab05_name_with_postfix = "${local.lab05_name}-${random_string.rid.result}"
-  lab06_name_with_postfix = "${local.lab06_name}-${random_string.rid.result}"
-  lab07_name_with_postfix = "${local.lab07_name}-${random_string.rid.result}"
-  lab08_name_with_postfix = "${local.lab08_name}-${random_string.rid.result}"
-  lab13_name_with_postfix = "${local.lab13_name}-${random_string.rid.result}"
+  lab14_name              = "LAB14COSMOS"
+  lab01_name_with_postfix = "${local.lab01_name}${random_string.rid.result}"
+  lab02_name_with_postfix = "${local.lab02_name}${random_string.rid.result}"
+  lab03_name_with_postfix = "${local.lab03_name}${random_string.rid.result}"
+  lab04_name_with_postfix = "${local.lab04_name}${random_string.rid.result}"
+  lab05_name_with_postfix = "${local.lab05_name}${random_string.rid.result}"
+  lab06_name_with_postfix = "${local.lab06_name}${random_string.rid.result}"
+  lab07_name_with_postfix = "${local.lab07_name}${random_string.rid.result}"
+  lab08_name_with_postfix = "${local.lab08_name}${random_string.rid.result}"
+  lab13_name_with_postfix = "${local.lab13_name}${random_string.rid.result}"
+  lab14_name_with_postfix = "${local.lab14_name}${random_string.rid.result}"
   user_name               = "demouser"
   user_passowrd           = "Azuredemo@2020"
 }
@@ -42,6 +44,11 @@ data "azurerm_client_config" "current" {}
 resource "random_string" "rid" {
   length  = 6
   special = false
+}
+
+resource "random_integer" "rint" {
+  min = 10000
+  max = 99999
 }
 
 # Create a resource group if it doesn't exist
@@ -564,5 +571,53 @@ resource "azurerm_key_vault" "lab13" {
 
   tags = {
     environment = local.group_name
+  }
+}
+
+## LAB-14-COSMOS-DB
+resource "azurerm_cosmosdb_account" "lab14" {
+  name                = lower(replace(local.lab14_name_with_postfix, "-", ""))
+  location            = azurerm_resource_group.az900rg.location
+  resource_group_name = azurerm_resource_group.az900rg.name
+  offer_type          = "Standard"
+  kind                = "GlobalDocumentDB"
+
+  consistency_policy {
+    consistency_level       = "BoundedStaleness"
+    max_interval_in_seconds = 10
+    max_staleness_prefix    = 200
+  }
+
+  geo_location {
+    location          = azurerm_resource_group.az900rg.location
+    failover_priority = 0
+  }
+}
+
+resource "azurerm_container_group" "lab14" {
+  name                = "${lower(replace(local.lab14_name_with_postfix, "-", ""))}aci"
+  location            = azurerm_resource_group.az900rg.location
+  resource_group_name = azurerm_resource_group.az900rg.name
+  ip_address_type     = "public"
+  dns_name_label      = "${lower(replace(local.lab14_name_with_postfix, "-", ""))}aci"
+  os_type             = "linux"
+
+  container {
+    name   = "vote-aci"
+    image  = "microsoft/azure-vote-front:cosmosdb"
+    cpu    = "0.5"
+    memory = "1.5"
+    ports {
+      port     = 80
+      protocol = "TCP"
+    }
+
+    secure_environment_variables = {
+      "COSMOS_DB_ENDPOINT"  = azurerm_cosmosdb_account.lab14.endpoint
+      "COSMOS_DB_MASTERKEY" = azurerm_cosmosdb_account.lab14.primary_master_key
+      "TITLE"               = lower(replace(local.lab14_name_with_postfix, "-", ""))
+      "VOTE1VALUE"          = "Cats"
+      "VOTE2VALUE"          = "Dogs"
+    }
   }
 }
