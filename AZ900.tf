@@ -3,10 +3,6 @@ provider "azurerm" {
   # If you are using version 1.x, the "features" block is not allowed.
   version = "~>2.0"
   features {}
-  subscription_id = "11321b33-1608-46d8-8a51-5d32cdd1b38a"
-  client_id       = "1cb6056e-81b8-4f74-9987-c0eab778b9be"
-  client_secret   = "259645fa-9a92-4b35-81ef-805f310acb52"
-  tenant_id       = "72f988bf-86f1-41af-91ab-2d7cd011db47"
 }
 
 locals {
